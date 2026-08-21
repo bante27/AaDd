@@ -101,4 +101,5 @@ export const getPlatformStatsAdmin = () => ADMIN_API.get('/stats');
 export const getUsersAdmin = () => ADMIN_API.get('/auth/users');
 export const deleteUserAdmin = (id) => ADMIN_API.delete(`/auth/users/${id}`);
 export const toggleBlockUserAdmin = (id) => ADMIN_API.put(`/auth/users/${id}/block`);
+export const updateUserRoleAdmin = (id, role) => ADMIN_API.put(`/auth/users/${id}/role`, { role });
 
