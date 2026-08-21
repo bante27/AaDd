@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminNavbar from '../components/AdminNavbar';
 import { simulatePaymentAdmin, getAdminTransactions, getCoursesAdmin } from '../services/adminApi';
-import { CreditCard, CheckCircle, AlertCircle, Search, Video, Copy, Check } from 'lucide-react';
+import { CreditCard, CheckCircle, AlertCircle, Search, Video, Check } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function SimulatePayment() {
@@ -17,7 +17,6 @@ export default function SimulatePayment() {
   const [courses, setCourses] = useState([]);
   const [loadingTx, setLoadingTx] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [copiedId, setCopiedId] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -60,10 +59,15 @@ export default function SimulatePayment() {
     }
   };
 
-  const copyToClipboard = (id) => {
-    navigator.clipboard.writeText(id);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(''), 2000);
+  const handleStatusToggle = async (txId, currentStatus) => {
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
+    // Optimistic UI update or API call if available
+    setTransactions(transactions.map(tx => {
+      if ((tx._id || tx.id) === txId) {
+        return { ...tx, status: newStatus };
+      }
+      return tx;
+    }));
   };
 
   const filteredTransactions = transactions.filter(tx => {
@@ -94,7 +98,7 @@ export default function SimulatePayment() {
                   </div>
                   <div>
                     <h3 className="font-bold text-base">Active Courses & IDs</h3>
-                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Click copy to paste Course ID into the payment simulator.</p>
+                    <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Click Use ID to paste Course ID into the payment simulator.</p>
                   </div>
                 </div>
 
@@ -131,16 +135,6 @@ export default function SimulatePayment() {
 
             {/* Simulation Form Card */}
             <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200 shadow-sm'}`}>
-              <div className="flex items-center space-x-3 mb-6">
-                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center text-blue-500 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'}`}>
-                  <CreditCard size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-base">Simulate Payment</h3>
-                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Mark order complete & enroll student.</p>
-                </div>
-              </div>
-
               {resultMsg && (
                 <div className="mb-4 bg-emerald-500/10 border border-emerald-500/30 text-emerald-500 p-3.5 rounded-xl flex items-center space-x-3 text-xs font-medium">
                   <CheckCircle size={16} />
@@ -220,13 +214,14 @@ export default function SimulatePayment() {
                       <th className="px-6 py-3.5">User</th>
                       <th className="px-6 py-3.5">Course</th>
                       <th className="px-6 py-3.5">Amount</th>
-                      <th className="px-6 py-3.5">Status</th>
+                      <th className="px-6 py-3.5">Status (Click to toggle)</th>
                       <th className="px-6 py-3.5 text-right">Date</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y ${darkMode ? 'divide-gray-800' : 'divide-gray-100'}`}>
                     {filteredTransactions.map((tx) => {
                       const txId = tx._id || tx.id;
+                      const status = tx.status || 'completed';
                       return (
                         <tr key={txId} className={`transition-none ${darkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'}`}>
                           <td className="px-6 py-4">
@@ -239,14 +234,18 @@ export default function SimulatePayment() {
                           </td>
                           <td className="px-6 py-4 text-emerald-500 font-bold">{tx.totalAmount || tx.amount || tx.course?.price || 0} ETB</td>
                           <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border inline-flex items-center space-x-1 ${
-                              tx.status === 'completed' || tx.isPaid
-                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                                : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                            }`}>
+                            <button 
+                              onClick={() => handleStatusToggle(txId, status)}
+                              className={`px-3 py-1 rounded-full text-xs font-semibold border inline-flex items-center space-x-1 cursor-pointer transition-colors ${
+                                status === 'completed'
+                                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20'
+                                  : 'bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20'
+                              }`}
+                              title="Click to toggle status between Pending and Completed"
+                            >
                               <CheckCircle size={12} />
-                              <span className="capitalize">{tx.status || 'completed'}</span>
-                            </span>
+                              <span className="capitalize">{status}</span>
+                            </button>
                           </td>
                           <td className={`px-6 py-4 text-right text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                             {new Date(tx.createdAt || Date.now()).toLocaleDateString()}
@@ -264,3 +263,4 @@ export default function SimulatePayment() {
     </div>
   );
 }
+
