@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminNavbar from '../components/AdminNavbar';
 import { getUsersAdmin, deleteUserAdmin, toggleBlockUserAdmin, updateUserRoleAdmin } from '../services/adminApi';
-import { Users, Shield, ShieldAlert, Trash2, Ban, CheckCircle, X, Search, Mail, Phone, Lock, UserCheck, Eye, UserPlus, UserMinus } from 'lucide-react';
+import { Users, Shield, Trash2, Ban, CheckCircle, X, Search, Mail, Phone, Lock, UserCheck, Eye, UserPlus, UserMinus } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ManageUsers() {
@@ -114,7 +114,7 @@ export default function ManageUsers() {
                 <span>User Management</span>
               </h1>
               <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Manage registered users, make/remove admin privileges, block/unblock accounts, or delete users.
+                Manage registered users, make/remove admin privileges from the Role column, block/unblock, or delete users.
               </p>
             </div>
             <div className="relative w-full md:w-72">
@@ -160,7 +160,7 @@ export default function ManageUsers() {
                     <tr>
                       <th className="px-6 py-3.5">User Profile</th>
                       <th className="px-6 py-3.5">Contact</th>
-                      <th className="px-6 py-3.5">Role</th>
+                      <th className="px-6 py-3.5">Role (Make / Remove Admin)</th>
                       <th className="px-6 py-3.5">Verification</th>
                       <th className="px-6 py-3.5">Status</th>
                       <th className="px-6 py-3.5 text-right">Actions</th>
@@ -195,14 +195,28 @@ export default function ManageUsers() {
                             </div>
                           </td>
                           <td className="px-6 py-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border inline-flex items-center space-x-1 ${
-                              isAdmin
-                                ? (darkMode ? 'bg-purple-950/40 border-purple-800 text-purple-400' : 'bg-purple-50 border-purple-200 text-purple-600')
-                                : (darkMode ? 'bg-gray-800 border-gray-700 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600')
-                            }`}>
-                              {isAdmin ? <Shield size={12} /> : <UserCheck size={12} />}
-                              <span className="capitalize">{user.role || 'student'}</span>
-                            </span>
+                            <div className="flex items-center space-x-2.5">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border inline-flex items-center space-x-1 ${
+                                isAdmin
+                                  ? (darkMode ? 'bg-purple-950/40 border-purple-800 text-purple-400' : 'bg-purple-50 border-purple-200 text-purple-600')
+                                  : (darkMode ? 'bg-gray-800 border-gray-700 text-blue-400' : 'bg-blue-50 border-blue-200 text-blue-600')
+                              }`}>
+                                {isAdmin ? <Shield size={12} /> : <UserCheck size={12} />}
+                                <span className="capitalize">{user.role || 'student'}</span>
+                              </span>
+                              <button 
+                                onClick={() => handleToggleAdminRole(user)}
+                                className={`px-2.5 py-1 rounded-lg font-semibold text-xs border transition-colors inline-flex items-center space-x-1 ${
+                                  isAdmin 
+                                    ? 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 border-purple-500/20' 
+                                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border-emerald-500/20'
+                                }`}
+                                title={isAdmin ? 'Remove Admin Privilege' : 'Grant Admin Privilege'}
+                              >
+                                {isAdmin ? <UserMinus size={12} /> : <UserPlus size={12} />}
+                                <span>{isAdmin ? 'Remove Admin' : 'Make Admin'}</span>
+                              </button>
+                            </div>
                           </td>
                           <td className="px-6 py-4">
                             {user.isVerified ? (
@@ -238,18 +252,6 @@ export default function ManageUsers() {
                             >
                               <Eye size={12} />
                               <span>View</span>
-                            </button>
-                            <button 
-                              onClick={() => handleToggleAdminRole(user)}
-                              className={`px-2.5 py-1.5 rounded-lg font-semibold text-xs border transition-colors inline-flex items-center space-x-1 ${
-                                isAdmin 
-                                  ? 'bg-purple-500/10 hover:bg-purple-500/20 text-purple-500 border-purple-500/20' 
-                                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border-emerald-500/20'
-                              }`}
-                              title={isAdmin ? 'Remove Admin' : 'Make Admin'}
-                            >
-                              {isAdmin ? <UserMinus size={12} /> : <UserPlus size={12} />}
-                              <span>{isAdmin ? 'Remove Admin' : 'Make Admin'}</span>
                             </button>
                             <button 
                               onClick={() => handleToggleBlock(userId)}
