@@ -66,9 +66,9 @@ export default function AdminNavbar() {
             />
             <span className="absolute text-white font-bold text-xs" style={{ display: 'none' }}>MH</span>
           </div>
-          <div className="hidden md:block text-left pr-1">
-            <span className="text-sm font-bold block leading-tight">{user?.name || 'Musharof'}</span>
-            <span className="text-[11px] text-gray-400 block leading-tight">Super Admin</span>
+          <div className="flex items-center space-x-3 pr-1">
+            <span className="text-sm font-bold block leading-tight">{user?.firstName ? `${user.firstName} ${user.lastName || ''}` : (user?.name || 'Musharof')}</span>
+            <span className="text-[11px] text-gray-400 block leading-tight capitalize">{user?.role || 'Super Admin'}</span>
           </div>
           <ChevronDown size={14} className="text-gray-400" />
         </div>
