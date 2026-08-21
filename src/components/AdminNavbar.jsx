@@ -12,13 +12,20 @@ export default function AdminNavbar() {
 
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [viewedIds, setViewedIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('admin_viewed_notifications');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000); // Poll every 15s for exact new live notifications
+    const interval = setInterval(fetchNotifications, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [viewedIds]);
 
   const fetchNotifications = async () => {
     try {
@@ -49,11 +56,25 @@ export default function AdminNavbar() {
         }))
       ].sort((a, b) => b.time - a.time);
 
-      setNotifications(combined.slice(0, 5));
-      setUnreadCount(combined.length);
+      // Filter out viewed notifications
+      const unviewed = combined.filter(n => !viewedIds.includes(n.id));
+      setNotifications(unviewed);
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
+  };
+
+  const handleNotificationClick = (n) => {
+    const updatedViewed = [...viewedIds, n.id];
+    setViewedIds(updatedViewed);
+    try {
+      localStorage.setItem('admin_viewed_notifications', JSON.stringify(updatedViewed));
+    } catch (e) {
+      console.error(e);
+    }
+    setNotifications(notifications.filter(item => item.id !== n.id));
+    setShowDropdown(false);
+    navigate(n.path);
   };
 
   const adminName = user?.firstName ? `${user.firstName} ${user.lastName || ''}` : (user?.name || 'Administrator');
@@ -106,7 +127,7 @@ export default function AdminNavbar() {
             }`}
           >
             <Bell size={18} />
-            {unreadCount > 0 && (
+            {notifications.length > 0 && (
               <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
             )}
           </button>
@@ -116,7 +137,7 @@ export default function AdminNavbar() {
               darkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-900'
             }`}>
               <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                <h4 className="font-bold text-sm">Live Notifications ({unreadCount})</h4>
+                <h4 className="font-bold text-sm">Notifications ({notifications.length})</h4>
                 <button onClick={() => setShowDropdown(false)} className="text-gray-400 hover:text-gray-200">
                   <X size={16} />
                 </button>
@@ -124,12 +145,12 @@ export default function AdminNavbar() {
 
               <div className="max-h-72 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-800">
                 {notifications.length === 0 ? (
-                  <p className={`text-xs py-8 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No recent notifications.</p>
+                  <p className={`text-xs py-8 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No unread notifications.</p>
                 ) : (
                   notifications.map(n => (
                     <div 
                       key={n.id} 
-                      onClick={() => { navigate(n.path); setShowDropdown(false); }}
+                      onClick={() => handleNotificationClick(n)}
                       className={`p-3.5 transition-colors cursor-pointer text-xs space-y-1 ${
                         darkMode ? 'hover:bg-gray-800/60' : 'hover:bg-gray-50'
                       }`}
