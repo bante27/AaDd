@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminNavbar from '../components/AdminNavbar';
 import { getUsersAdmin, deleteUserAdmin, toggleBlockUserAdmin } from '../services/adminApi';
-import { Users, Shield, ShieldAlert, Trash2, Ban, CheckCircle, X, Search, Mail, Phone, Lock, UserCheck } from 'lucide-react';
+import { Users, Shield, Trash2, Ban, CheckCircle, X, Search, Mail, Phone, Lock, UserCheck, Eye } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ManageUsers() {
@@ -12,6 +12,8 @@ export default function ManageUsers() {
   const [searchTerm, setSearchTerm] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -22,51 +24,27 @@ export default function ManageUsers() {
       setLoading(true);
       const res = await getUsersAdmin();
       setUsers(res.data || []);
+      setErrorMsg('');
     } catch (err) {
       console.error('Error fetching users:', err);
-      setUsers([
-        {
-          _id: '1',
-          firstName: 'Musharof',
-          lastName: 'Chowdhury',
-          email: 'musharof@admin.com',
-          phone: '+251911223344',
-          role: 'admin',
-          isVerified: true,
-          isBlocked: false,
-          profileImage: '',
-          createdAt: new Date().toISOString()
-        },
-        {
-          _id: '2',
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          phone: '+251922334455',
-          role: 'student',
-          isVerified: true,
-          isBlocked: false,
-          profileImage: '',
-          createdAt: new Date().toISOString()
-        }
-      ]);
+      setErrorMsg('Failed to load users from database. Please ensure backend is running.');
+      setUsers([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    if (!window.confirm('Are you sure you want to delete this user permanently?')) return;
     try {
       await deleteUserAdmin(id);
       setUsers(users.filter(u => (u._id || u.id) !== id));
-      setSuccessMsg('User removed successfully by admin.');
+      setSuccessMsg('User removed successfully from database.');
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       console.error('Delete user error:', err);
-      setUsers(users.filter(u => (u._id || u.id) !== id));
-      setSuccessMsg('User removed from view.');
-      setTimeout(() => setSuccessMsg(''), 4000);
+      setErrorMsg(err.response?.data?.message || 'Failed to delete user.');
+      setTimeout(() => setErrorMsg(''), 4000);
     }
   };
 
@@ -84,15 +62,14 @@ export default function ManageUsers() {
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err) {
       console.error('Toggle block error:', err);
-      setUsers(users.map(u => {
-        if ((u._id || u.id) === id) {
-          return { ...u, isBlocked: !u.isBlocked };
-        }
-        return u;
-      }));
-      setSuccessMsg('User block status toggled.');
-      setTimeout(() => setSuccessMsg(''), 4000);
+      setErrorMsg(err.response?.data?.message || 'Failed to update block status.');
+      setTimeout(() => setErrorMsg(''), 4000);
     }
+  };
+
+  const handleViewUser = (user) => {
+    setSelectedUser(user);
+    setIsViewModalOpen(true);
   };
 
   const filteredUsers = users.filter(user => {
@@ -116,7 +93,7 @@ export default function ManageUsers() {
                 <span>User Management</span>
               </h1>
               <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Manage system users, view registration details, restrict/block accounts, or remove users.
+                Manage system users from database, view details, restrict/block accounts, or delete users.
               </p>
             </div>
             <div className="relative w-full md:w-72">
@@ -154,7 +131,7 @@ export default function ManageUsers() {
             {loading ? (
               <p className={`text-xs py-12 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading users from database...</p>
             ) : filteredUsers.length === 0 ? (
-              <p className={`text-xs py-12 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No users found matching your search.</p>
+              <p className={`text-xs py-12 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No users found in database.</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
@@ -233,6 +210,13 @@ export default function ManageUsers() {
                           </td>
                           <td className="px-6 py-4 text-right space-x-2">
                             <button 
+                              onClick={() => handleViewUser(user)}
+                              className="px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 font-semibold text-xs border border-blue-500/20 inline-flex items-center space-x-1"
+                            >
+                              <Eye size={12} />
+                              <span>View</span>
+                            </button>
+                            <button 
                               onClick={() => handleToggleBlock(userId)}
                               className={`px-3 py-1.5 rounded-lg font-semibold text-xs border transition-colors ${
                                 user.isBlocked 
@@ -259,6 +243,70 @@ export default function ManageUsers() {
           </div>
         </main>
       </div>
+
+      {/* View User Modal */}
+      {isViewModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className={`w-full max-w-lg rounded-2xl border p-6 relative shadow-xl ${darkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+            <button onClick={() => setIsViewModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-200">
+              <X size={20} />
+            </button>
+            <div className="flex items-center space-x-4 mb-6">
+              <div className={`w-16 h-16 rounded-2xl border flex items-center justify-center font-bold text-xl text-blue-500 overflow-hidden flex-shrink-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-50 border-blue-200'}`}>
+                {selectedUser.profileImage ? (
+                  <img src={selectedUser.profileImage} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <span>{selectedUser.firstName?.[0] || 'U'}</span>
+                )}
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">{selectedUser.firstName} {selectedUser.lastName}</h3>
+                <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>ID: {selectedUser._id || selectedUser.id}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3.5 text-xs">
+              <div className={`p-3 rounded-xl border flex justify-between items-center ${darkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <span className="font-semibold text-gray-400 uppercase tracking-wider text-[10px]">Email Address</span>
+                <span className="font-medium">{selectedUser.email}</span>
+              </div>
+              <div className={`p-3 rounded-xl border flex justify-between items-center ${darkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <span className="font-semibold text-gray-400 uppercase tracking-wider text-[10px]">Phone Number</span>
+                <span className="font-medium">{selectedUser.phone || 'N/A'}</span>
+              </div>
+              <div className={`p-3 rounded-xl border flex justify-between items-center ${darkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <span className="font-semibold text-gray-400 uppercase tracking-wider text-[10px]">Account Role</span>
+                <span className="font-bold capitalize text-blue-500">{selectedUser.role || 'student'}</span>
+              </div>
+              <div className={`p-3 rounded-xl border flex justify-between items-center ${darkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <span className="font-semibold text-gray-400 uppercase tracking-wider text-[10px]">Email Verification</span>
+                <span className={selectedUser.isVerified ? 'text-emerald-500 font-bold' : 'text-amber-500 font-bold'}>
+                  {selectedUser.isVerified ? 'Verified' : 'Pending OTP'}
+                </span>
+              </div>
+              <div className={`p-3 rounded-xl border flex justify-between items-center ${darkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <span className="font-semibold text-gray-400 uppercase tracking-wider text-[10px]">Account Status</span>
+                <span className={selectedUser.isBlocked ? 'text-red-500 font-bold' : 'text-emerald-500 font-bold'}>
+                  {selectedUser.isBlocked ? 'Blocked / Restricted' : 'Active'}
+                </span>
+              </div>
+              <div className={`p-3 rounded-xl border flex justify-between items-center ${darkMode ? 'bg-gray-800/50 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                <span className="font-semibold text-gray-400 uppercase tracking-wider text-[10px]">Enrolled Courses</span>
+                <span className="font-medium">{selectedUser.enrolledCourses?.length || 0} courses</span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => setIsViewModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
