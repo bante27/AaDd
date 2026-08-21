@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminNavbar from '../components/AdminNavbar';
 import { simulatePaymentAdmin, getAdminTransactions, updateTransactionStatusAdmin, getCoursesAdmin } from '../services/adminApi';
-import { CreditCard, CheckCircle, AlertCircle, Search, Video } from 'lucide-react';
+import { CreditCard, CheckCircle, AlertCircle, Search, Video, Lock, Unlock } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function SimulatePayment() {
@@ -63,21 +63,17 @@ export default function SimulatePayment() {
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
     try {
       const res = await updateTransactionStatusAdmin(txId, newStatus);
+      const updatedOrder = res.data?.order || res.data;
       setTransactions(transactions.map(tx => {
         if ((tx._id || tx.id) === txId) {
-          return { ...tx, status: res.data?.order?.status || newStatus };
+          return { ...tx, status: updatedOrder.status || newStatus };
         }
         return tx;
       }));
     } catch (err) {
       console.error('Update status error:', err);
-      // Fallback optimistic update
-      setTransactions(transactions.map(tx => {
-        if ((tx._id || tx.id) === txId) {
-          return { ...tx, status: newStatus };
-        }
-        return tx;
-      }));
+      setErrorMsg(err.response?.data?.message || 'Failed to update transaction status.');
+      setTimeout(() => setErrorMsg(''), 4000);
     }
   };
 
@@ -139,8 +135,8 @@ export default function SimulatePayment() {
               </div>
 
               <div className={`mt-4 p-3 rounded-xl border text-xs ${darkMode ? 'bg-gray-800/40 border-gray-700 text-gray-300' : 'bg-blue-50/50 border-blue-100 text-blue-900'}`}>
-                <span className="font-bold block mb-0.5">💡 Quick Tip</span>
-                <span>Select any course ID above to auto-populate the simulation form and test enrollment.</span>
+                <span className="font-bold block mb-0.5">💡 Course Access Control</span>
+                <span>Changing transaction status to <strong className="text-emerald-500">Completed</strong> auto-enrolls the user so they can watch the course videos. Changing to <strong className="text-amber-500">Pending</strong> revokes access.</span>
               </div>
             </div>
 
@@ -200,7 +196,7 @@ export default function SimulatePayment() {
           {/* Transactions List Card */}
           <div className={`rounded-2xl border overflow-hidden ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200 shadow-sm'}`}>
             <div className="p-5 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <h3 className="font-bold text-base">Course Payment Transactions ({filteredTransactions.length})</h3>
+              <h3 className="font-bold text-base">Course Payment Transactions & Access Control ({filteredTransactions.length})</h3>
               <div className="relative w-full sm:w-64">
                 <Search className={`absolute left-3.5 top-3 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`} size={16} />
                 <input 
@@ -225,7 +221,7 @@ export default function SimulatePayment() {
                       <th className="px-6 py-3.5">User</th>
                       <th className="px-6 py-3.5">Course</th>
                       <th className="px-6 py-3.5">Amount</th>
-                      <th className="px-6 py-3.5">Status (Click to toggle)</th>
+                      <th className="px-6 py-3.5">Payment & Video Access</th>
                       <th className="px-6 py-3.5 text-right">Date</th>
                     </tr>
                   </thead>
@@ -233,6 +229,7 @@ export default function SimulatePayment() {
                     {filteredTransactions.map((tx) => {
                       const txId = tx._id || tx.id;
                       const status = tx.status || 'completed';
+                      const isCompleted = status === 'completed';
                       return (
                         <tr key={txId} className={`transition-none ${darkMode ? 'hover:bg-gray-800/50' : 'hover:bg-gray-50'}`}>
                           <td className="px-6 py-4">
@@ -245,18 +242,23 @@ export default function SimulatePayment() {
                           </td>
                           <td className="px-6 py-4 text-emerald-500 font-bold">{tx.totalAmount || tx.amount || tx.course?.price || 0} ETB</td>
                           <td className="px-6 py-4">
-                            <button 
-                              onClick={() => handleStatusToggle(txId, status)}
-                              className={`px-3 py-1 rounded-full text-xs font-semibold border inline-flex items-center space-x-1 cursor-pointer transition-colors ${
-                                status === 'completed'
-                                  ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20'
-                                  : 'bg-amber-500/10 text-amber-500 border-amber-500/20 hover:bg-amber-500/20'
-                              }`}
-                              title="Click to toggle status between Pending and Completed"
-                            >
-                              <CheckCircle size={12} />
-                              <span className="capitalize">{status}</span>
-                            </button>
+                            <div className="flex items-center space-x-3">
+                              <button 
+                                onClick={() => handleStatusToggle(txId, status)}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-semibold border inline-flex items-center space-x-1.5 cursor-pointer transition-colors ${
+                                  isCompleted
+                                    ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30 hover:bg-emerald-500/20'
+                                    : 'bg-amber-500/10 text-amber-500 border-amber-500/30 hover:bg-amber-500/20'
+                                }`}
+                                title="Click to toggle between Completed and Pending"
+                              >
+                                {isCompleted ? <Unlock size={14} /> : <Lock size={14} />}
+                                <span className="capitalize">{status}</span>
+                              </button>
+                              <span className={`text-[11px] font-medium ${isCompleted ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                {isCompleted ? '🔓 Video Unlocked' : '🔒 Video Locked'}
+                              </span>
+                            </div>
                           </td>
                           <td className={`px-6 py-4 text-right text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                             {new Date(tx.createdAt || Date.now()).toLocaleDateString()}
