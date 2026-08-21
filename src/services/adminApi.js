@@ -20,6 +20,7 @@ ADMIN_API.interceptors.request.use((config) => {
 // 1. Authentication & Payment
 export const loginAdmin = (email, password) => ADMIN_API.post('/auth/login', { email, password });
 export const simulatePaymentAdmin = (data) => ADMIN_API.post('/payments/simulate-success', data);
+export const getAdminTransactions = () => ADMIN_API.get('/payments/admin/transactions');
 
 // 2. Courses (/api/courses)
 export const getCoursesAdmin = () => ADMIN_API.get('/courses');
