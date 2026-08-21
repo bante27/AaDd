@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Search, Moon, Sun, ChevronDown, MessageSquare, CreditCard, X } from 'lucide-react';
+import { Bell, Search, Moon, Sun, ChevronDown, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { getServiceInquiriesAdmin, getAdminTransactions } from '../services/adminApi';
@@ -12,9 +12,9 @@ export default function AdminNavbar() {
 
   const [notifications, setNotifications] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [viewedIds, setViewedIds] = useState(() => {
+  const [seenIds, setSeenIds] = useState(() => {
     try {
-      const saved = localStorage.getItem('admin_viewed_notifications');
+      const saved = localStorage.getItem('admin_seen_notification_ids');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -22,12 +22,12 @@ export default function AdminNavbar() {
   });
 
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000);
+    fetchAndFilterNotifications();
+    const interval = setInterval(fetchAndFilterNotifications, 10000);
     return () => clearInterval(interval);
-  }, [viewedIds]);
+  }, [seenIds]);
 
-  const fetchNotifications = async () => {
+  const fetchAndFilterNotifications = async () => {
     try {
       const [inquiriesRes, txRes] = await Promise.all([
         getServiceInquiriesAdmin().catch(() => ({ data: [] })),
@@ -39,16 +39,14 @@ export default function AdminNavbar() {
 
       const combined = [
         ...inquiries.map(i => ({
-          id: i._id || i.id,
-          type: 'inquiry',
+          id: `inquiry-${i._id || i.id}`,
           title: `New Inquiry from ${i.name || 'Client'}`,
           desc: i.message ? i.message.substring(0, 40) + '...' : 'New service inquiry received',
           time: new Date(i.createdAt || Date.now()),
           path: '/admin/inquiries'
         })),
         ...txs.map(t => ({
-          id: t._id || t.id,
-          type: 'transaction',
+          id: `tx-${t._id || t.id}`,
           title: `New Order: ${t.course?.title || 'Course'}`,
           desc: `${t.user?.firstName || 'Student'} paid ${t.totalAmount || t.amount || 0} ETB`,
           time: new Date(t.createdAt || Date.now()),
@@ -56,23 +54,31 @@ export default function AdminNavbar() {
         }))
       ].sort((a, b) => b.time - a.time);
 
-      // Filter out viewed notifications
-      const unviewed = combined.filter(n => !viewedIds.includes(n.id));
-      setNotifications(unviewed);
+      // Only keep items that have NOT been seen/viewed yet
+      const unread = combined.filter(n => !seenIds.includes(n.id));
+      setNotifications(unread);
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
   };
 
-  const handleNotificationClick = (n) => {
-    const updatedViewed = [...viewedIds, n.id];
-    setViewedIds(updatedViewed);
-    try {
-      localStorage.setItem('admin_viewed_notifications', JSON.stringify(updatedViewed));
-    } catch (e) {
-      console.error(e);
+  const handleOpenDropdown = () => {
+    setShowDropdown(!showDropdown);
+    if (!showDropdown && notifications.length > 0) {
+      // Mark all currently visible notifications as seen when opening dropdown
+      const allCurrentIds = notifications.map(n => n.id);
+      const updatedSeen = Array.from(new Set([...seenIds, ...allCurrentIds]));
+      setSeenIds(updatedSeen);
+      try {
+        localStorage.setItem('admin_seen_notification_ids', JSON.stringify(updatedSeen));
+      } catch (e) {
+        console.error(e);
+      }
+      setNotifications([]);
     }
-    setNotifications(notifications.filter(item => item.id !== n.id));
+  };
+
+  const handleNotificationClick = (n) => {
     setShowDropdown(false);
     navigate(n.path);
   };
@@ -119,7 +125,7 @@ export default function AdminNavbar() {
         {/* Notification Bell with Live Dropdown */}
         <div className="relative">
           <button 
-            onClick={() => setShowDropdown(!showDropdown)}
+            onClick={handleOpenDropdown}
             className={`p-2.5 rounded-xl border transition-none relative ${
               darkMode 
                 ? 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700' 
@@ -137,7 +143,7 @@ export default function AdminNavbar() {
               darkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-900'
             }`}>
               <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-                <h4 className="font-bold text-sm">Notifications ({notifications.length})</h4>
+                <h4 className="font-bold text-sm">New Notifications ({notifications.length})</h4>
                 <button onClick={() => setShowDropdown(false)} className="text-gray-400 hover:text-gray-200">
                   <X size={16} />
                 </button>
@@ -145,7 +151,7 @@ export default function AdminNavbar() {
 
               <div className="max-h-72 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-800">
                 {notifications.length === 0 ? (
-                  <p className={`text-xs py-8 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No unread notifications.</p>
+                  <p className={`text-xs py-8 text-center ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No new notifications.</p>
                 ) : (
                   notifications.map(n => (
                     <div 
