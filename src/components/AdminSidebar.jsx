@@ -12,6 +12,7 @@ export default function AdminSidebar() {
 
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/admin' },
+    { name: 'Users', icon: Users, path: '/admin/users' },
     { name: 'Courses', icon: Video, path: '/admin/courses' },
     { name: 'Assets', icon: Box, path: '/admin/assets' },
     { name: 'Portfolios', icon: Film, path: '/admin/portfolios' },
