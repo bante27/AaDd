@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminNavbar from '../components/AdminNavbar';
-import { simulatePaymentAdmin, getAdminTransactions, getCoursesAdmin } from '../services/adminApi';
-import { CreditCard, CheckCircle, AlertCircle, Search, Video, Check } from 'lucide-react';
+import { simulatePaymentAdmin, getAdminTransactions, updateTransactionStatusAdmin, getCoursesAdmin } from '../services/adminApi';
+import { CreditCard, CheckCircle, AlertCircle, Search, Video } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function SimulatePayment() {
@@ -61,13 +61,24 @@ export default function SimulatePayment() {
 
   const handleStatusToggle = async (txId, currentStatus) => {
     const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
-    // Optimistic UI update or API call if available
-    setTransactions(transactions.map(tx => {
-      if ((tx._id || tx.id) === txId) {
-        return { ...tx, status: newStatus };
-      }
-      return tx;
-    }));
+    try {
+      const res = await updateTransactionStatusAdmin(txId, newStatus);
+      setTransactions(transactions.map(tx => {
+        if ((tx._id || tx.id) === txId) {
+          return { ...tx, status: res.data?.order?.status || newStatus };
+        }
+        return tx;
+      }));
+    } catch (err) {
+      console.error('Update status error:', err);
+      // Fallback optimistic update
+      setTransactions(transactions.map(tx => {
+        if ((tx._id || tx.id) === txId) {
+          return { ...tx, status: newStatus };
+        }
+        return tx;
+      }));
+    }
   };
 
   const filteredTransactions = transactions.filter(tx => {
