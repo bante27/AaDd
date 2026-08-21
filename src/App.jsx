@@ -25,6 +25,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<AdminDashboard />} />
       <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/users" element={<ManageUsers />} />
+      <Route path="/admin/users" element={<ManageUsers />} />
       <Route path="/courses" element={<ManageCourses />} />
       <Route path="/admin/courses" element={<ManageCourses />} />
       <Route path="/assets" element={<ManageAssets />} />
