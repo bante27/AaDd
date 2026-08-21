@@ -97,3 +97,8 @@ export const sendNewsletterBroadcastAdmin = (data) => ADMIN_API.post('/newslette
 // 10. Platform Stats (/api/stats)
 export const getPlatformStatsAdmin = () => ADMIN_API.get('/stats');
 
+// 11. User Management (/api/auth/users)
+export const getUsersAdmin = () => ADMIN_API.get('/auth/users');
+export const deleteUserAdmin = (id) => ADMIN_API.delete(`/auth/users/${id}`);
+export const toggleBlockUserAdmin = (id) => ADMIN_API.put(`/auth/users/${id}/block`);
+
