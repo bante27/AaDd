@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Video, Box, Film, MessageSquare, CreditCard, Scissors, Mail, BarChart2, LogOut, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Users, Video, Box, Film, MessageSquare, CreditCard, Scissors, Mail, BarChart2, LogOut, ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';

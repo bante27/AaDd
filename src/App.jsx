@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import AdminDashboard from './pages/AdminDashboard';
+import ManageUsers from './pages/ManageUsers';
 import ManageCourses from './pages/ManageCourses';
 import ManageAssets from './pages/ManageAssets';
 import ManagePortfolios from './pages/ManagePortfolios';
