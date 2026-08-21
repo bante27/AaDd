@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminNavbar from '../components/AdminNavbar';
 import { simulatePaymentAdmin, getAdminTransactions } from '../services/adminApi';
-import { CreditCard, CheckCircle, AlertCircle, DollarSign, Search, User, BookOpen, Calendar } from 'lucide-react';
+import { CreditCard, CheckCircle, AlertCircle, Search } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function SimulatePayment() {
@@ -66,18 +66,6 @@ export default function SimulatePayment() {
       <div className="flex-1 flex flex-col">
         <AdminNavbar />
         <main className="p-8 space-y-8 flex-1">
-          <div className={`p-6 rounded-2xl border flex flex-col md:flex-row items-start md:items-center justify-between gap-4 ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200 shadow-sm'}`}>
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight flex items-center space-x-3">
-                <CreditCard className="text-blue-500" size={28} />
-                <span>Payment & Transactions Management</span>
-              </h1>
-              <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                Simulate successful payments (`POST /api/payments/simulate-success`) and view all real course transactions (`GET /api/payments/admin/transactions`).
-              </p>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Simulation Form Card */}
             <div className={`p-6 rounded-2xl border ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200 shadow-sm'}`}>
