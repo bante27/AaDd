@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminNavbar from '../components/AdminNavbar';
 import { getContactMessagesAdmin, getNewsletterSubscribersAdmin, sendNewsletterBroadcastAdmin } from '../services/adminApi';
-import { Mail, Users, Send, MessageSquare, CheckCircle, X } from 'lucide-react';
+import { Mail, Users, Send, MessageSquare, CheckCircle, X, Reply } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 export default function ManageContactNewsletter() {
@@ -16,6 +16,13 @@ export default function ManageContactNewsletter() {
   // Broadcast form state
   const [broadcast, setBroadcast] = useState({ subject: '', message: '' });
   const [sending, setSending] = useState(false);
+
+  // Reply Modal State
+  const [replyModalOpen, setReplyModalOpen] = useState(false);
+  const [activeMessage, setActiveMessage] = useState(null);
+  const [replySubject, setReplySubject] = useState('');
+  const [replyMessage, setReplyMessage] = useState('');
+  const [replying, setReplying] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -54,6 +61,35 @@ export default function ManageContactNewsletter() {
     }
   };
 
+  const handleOpenReplyModal = (msg) => {
+    setActiveMessage(msg);
+    setReplySubject(`Re: Your inquiry on MrHaile.com`);
+    setReplyMessage('');
+    setReplyModalOpen(true);
+  };
+
+  const handleSendReply = async (e) => {
+    e.preventDefault();
+    if (!activeMessage) return;
+    try {
+      setReplying(true);
+      setError('');
+      // Using broadcast endpoint or dedicated reply if available
+      await sendNewsletterBroadcastAdmin({
+        subject: replySubject,
+        message: `Hello ${activeMessage.name || activeMessage.fullName || 'User'},\n\nIn response to your message:\n"${activeMessage.message || activeMessage.content}"\n\n---\n${replyMessage}\n\nBest regards,\nMrHaile.com Admin Team`
+      });
+      setSuccessMsg(`Reply successfully sent to ${activeMessage.email}!`);
+      setReplyModalOpen(false);
+      setActiveMessage(null);
+      setTimeout(() => setSuccessMsg(''), 4000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send reply email.');
+    } finally {
+      setReplying(false);
+    }
+  };
+
   return (
     <div className={`flex min-h-screen font-sans ${darkMode ? 'bg-gray-950 text-gray-100' : 'bg-gray-50 text-gray-900'}`}>
       <AdminSidebar />
@@ -68,7 +104,7 @@ export default function ManageContactNewsletter() {
               <span>Contact & Newsletter Hub</span>
             </h1>
             <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Review visitor contact messages and broadcast updates to all newsletter subscribers simultaneously.
+              Review visitor contact messages, reply individually, or broadcast updates to all newsletter subscribers simultaneously.
             </p>
           </div>
 
@@ -105,18 +141,18 @@ export default function ManageContactNewsletter() {
 
             <form onSubmit={handleSendBroadcast} className="space-y-4">
               <div>
-                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Email Subject</label>
+                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Subject</label>
                 <input
                   type="text"
                   required
                   value={broadcast.subject}
                   onChange={(e) => setBroadcast({ ...broadcast, subject: e.target.value })}
                   className={`w-full rounded-xl px-3.5 py-2.5 text-sm border focus:outline-none focus:border-blue-500 ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
-                  placeholder="e.g. Exciting new video editing presets released!"
+                  placeholder="Enter broadcast subject..."
                 />
               </div>
               <div>
-                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Message Body</label>
+                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Message</label>
                 <textarea
                   rows={4}
                   required
@@ -142,7 +178,7 @@ export default function ManageContactNewsletter() {
           {/* SECTION 2: Contact Messages & Subscribers Lists (Side-by-Side Clean Grid) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            {/* Contact Messages Card */}
+            {/* Contact Messages Card with Reply Button */}
             <div className={`rounded-2xl border p-6 flex flex-col justify-between ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200 shadow-sm'}`}>
               <div>
                 <h3 className="text-base font-bold mb-4 flex items-center space-x-2 pb-3 border-b border-gray-200 dark:border-gray-800">
@@ -156,13 +192,22 @@ export default function ManageContactNewsletter() {
                 ) : (
                   <div className="space-y-3.5 max-h-[380px] overflow-y-auto pr-2">
                     {messages.map((msg, idx) => (
-                      <div key={msg._id || idx} className={`p-4 rounded-xl border space-y-1.5 ${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
+                      <div key={msg._id || idx} className={`p-4 rounded-xl border space-y-2 ${darkMode ? 'bg-gray-800/60 border-gray-700' : 'bg-gray-50 border-gray-200'}`}>
                         <div className="flex justify-between items-center text-xs">
                           <span className="font-bold text-blue-500">{msg.name || msg.fullName || 'Visitor'}</span>
                           <span className="text-gray-400">{msg.email}</span>
                         </div>
                         <p className={`text-xs leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>{msg.message || msg.content}</p>
-                        <span className="text-[10px] text-gray-400 block text-right">{new Date(msg.createdAt || Date.now()).toLocaleDateString()}</span>
+                        <div className="flex justify-between items-center pt-2 border-t border-gray-200 dark:border-gray-700">
+                          <span className="text-[10px] text-gray-400">{new Date(msg.createdAt || Date.now()).toLocaleDateString()}</span>
+                          <button
+                            onClick={() => handleOpenReplyModal(msg)}
+                            className="px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 font-semibold text-xs border border-blue-500/20 flex items-center space-x-1"
+                          >
+                            <Reply size={12} />
+                            <span>Reply</span>
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -195,9 +240,54 @@ export default function ManageContactNewsletter() {
             </div>
 
           </div>
-
         </main>
       </div>
+
+      {/* Reply Modal */}
+      {replyModalOpen && activeMessage && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className={`w-full max-w-lg rounded-2xl border p-6 relative shadow-xl ${darkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-gray-200 text-gray-900'}`}>
+            <button onClick={() => setReplyModalOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-200">
+              <X size={20} />
+            </button>
+            <h3 className="text-lg font-bold mb-2">Reply to Message</h3>
+            <p className={`text-xs mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              Sending reply email to <strong className="text-blue-500">{activeMessage.email}</strong> ({activeMessage.name || 'Visitor'})
+            </p>
+            <form onSubmit={handleSendReply} className="space-y-4">
+              <div>
+                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Subject</label>
+                <input 
+                  type="text" 
+                  required
+                  value={replySubject}
+                  onChange={(e) => setReplySubject(e.target.value)}
+                  className={`w-full rounded-xl px-3.5 py-2.5 text-xs border focus:outline-none focus:border-blue-500 ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                />
+              </div>
+              <div>
+                <label className={`block text-[11px] font-bold uppercase tracking-wider mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Reply Message</label>
+                <textarea 
+                  rows={4}
+                  required
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  placeholder="Type your response to this user..."
+                  className={`w-full rounded-xl px-3.5 py-2.5 text-xs border focus:outline-none focus:border-blue-500 ${darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                />
+              </div>
+              <div className="pt-2 flex space-x-3">
+                <button type="submit" disabled={replying} className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs shadow-sm">
+                  {replying ? 'Sending Reply...' : 'Send Reply Email'}
+                </button>
+                <button type="button" onClick={() => setReplyModalOpen(false)} className={`px-4 py-2.5 rounded-xl border font-semibold text-xs ${darkMode ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-gray-100 border-gray-200 text-gray-700'}`}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
