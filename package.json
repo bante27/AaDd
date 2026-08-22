@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "start": "node server.js",
-    "build": "npx vite build"
+    "build": "./node_modules/.bin/vite build"
   },
   "dependencies": {
     "@react-three/drei": "^9.105.0",
