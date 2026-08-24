@@ -338,21 +338,21 @@ export default function ManageLiveChat() {
                     ) : (
                       messages.map((msg) => {
                         const senderRole = msg.senderRole;
-                        const isAdminMsg = senderRole === 'admin' || senderRole === 'superadmin';
+                        const isClientMsg = senderRole === 'student' || senderRole === 'user' || (selectedConversation.userId && (msg.senderId === selectedConversation.userId._id || msg.senderId?._id === selectedConversation.userId._id));
                         return (
-                          <div key={msg._id || Math.random()} className={`flex flex-col ${isAdminMsg ? 'items-end' : 'items-start'}`}>
+                          <div key={msg._id || Math.random()} className={`flex flex-col ${isClientMsg ? 'items-start' : 'items-end'}`}>
                             <div className="flex items-center space-x-1.5 mb-1">
                               <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {isAdminMsg ? 'Admin (You)' : `${selectedConversation.userId?.firstName || 'Client'}`}
+                                {isClientMsg ? `${selectedConversation.userId?.firstName || 'Client'}` : 'Admin (You)'}
                               </span>
                               <span className={`text-[9px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
                             <div className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm ${
-                              isAdminMsg 
-                                ? 'bg-orange-600 text-white rounded-br-sm' 
-                                : (darkMode ? 'bg-gray-800 text-gray-100 rounded-bl-sm border border-gray-700' : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200 shadow-sm')
+                              isClientMsg 
+                                ? (darkMode ? 'bg-gray-800 text-gray-100 rounded-bl-sm border border-gray-700' : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200 shadow-sm')
+                                : 'bg-orange-600 text-white rounded-br-sm'
                             }`}>
                               {msg.text}
                             </div>
