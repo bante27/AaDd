@@ -17,6 +17,7 @@ export default function AdminSidebar() {
     { name: 'Assets', icon: Box, path: '/admin/assets' },
     { name: 'Portfolios', icon: Film, path: '/admin/portfolios' },
     { name: 'Editing Orders', icon: Scissors, path: '/admin/editing' },
+    { name: 'Live Support Chat', icon: MessageSquare, path: '/admin/chat' },
     { name: 'Inquiries', icon: MessageSquare, path: '/admin/inquiries' },
     { name: 'Contact', icon: Mail, path: '/admin/contact-newsletter' },
     { name: 'Stats', icon: BarChart2, path: '/admin/home-video' },
