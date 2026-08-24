@@ -34,7 +34,7 @@ export default function ManageLiveChat() {
       if (userInfoStr) {
         const userInfo = JSON.parse(userInfoStr);
         if (userInfo && userInfo.token) {
-          const socket = io('https://mrhaile-lms-hub.onrender.com', {
+          const socket = io('http://localhost:5000', {
             auth: { token: userInfo.token },
             transports: ['websocket', 'polling']
           });
