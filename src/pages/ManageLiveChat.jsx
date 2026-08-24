@@ -8,7 +8,7 @@ import {
   updateConversationStatusAdmin,
   markConversationReadAdmin 
 } from '../services/adminApi';
-import { MessageSquare, Send, Search, Phone, Mail, Trash2 } from 'lucide-react';
+import { MessageSquare, Send, Search, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { io } from 'socket.io-client';
 import axios from 'axios';
@@ -360,169 +360,126 @@ export default function ManageLiveChat() {
             </div>
           </div>
 
-          {/* Right Column: Telegram Style Active Conversation & Client Info Panel */}
-          <div className={`flex-1 rounded-2xl border flex overflow-hidden ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200 shadow-sm'}`}>
+          {/* Right Column: Telegram Style Active Conversation (Without Rightmost Profile Panel) */}
+          <div className={`flex-1 rounded-2xl border flex flex-col overflow-hidden ${darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-200 shadow-sm'}`}>
             {selectedConversation ? (
               <>
-                {/* Chat Feed */}
-                <div className="flex-1 flex flex-col h-full overflow-hidden border-r border-gray-200 dark:border-gray-800">
-                  {/* Chat Header */}
-                  <div className={`p-4 border-b flex items-center justify-between ${darkMode ? 'border-gray-800 bg-gray-900' : 'border-gray-200 bg-white'}`}>
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-9 h-9 rounded-xl border flex items-center justify-center font-bold text-orange-500 overflow-hidden flex-shrink-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-orange-50 border-orange-200'}`}>
-                        {selectedConversation.userId?.profileImage ? (
-                          <img src={selectedConversation.userId.profileImage} alt="" className="w-full h-full object-cover" />
-                        ) : (
-                          <span>{selectedConversation.userId?.firstName?.[0] || 'U'}</span>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xs">
-                          {selectedConversation.userId?.firstName} {selectedConversation.userId?.lastName}
-                        </h3>
-                        <p className={`text-[10px] ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>Online Support Chat</p>
-                      </div>
-                    </div>
-
-                    <select
-                      value={selectedConversation.status || 'active'}
-                      onChange={(e) => handleStatusChange(e.target.value)}
-                      className={`rounded-xl px-2.5 py-1 text-[11px] font-semibold border focus:outline-none ${
-                        darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
-                      }`}
-                    >
-                      <option value="active">Active</option>
-                      <option value="pending">Pending</option>
-                      <option value="closed">Closed</option>
-                    </select>
-                  </div>
-
-                  {/* Messages Bubble List (Telegram Style: Client Left, Admin Right) */}
-                  <div className={`flex-1 overflow-y-auto p-6 space-y-4 ${darkMode ? 'bg-gray-950/40' : 'bg-gray-50/50'}`}>
-                    {messagesLoading ? (
-                      <p className={`text-xs text-center py-12 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading messages...</p>
-                    ) : messages.length === 0 ? (
-                      <p className={`text-xs text-center py-12 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No messages exchanged yet.</p>
-                    ) : (
-                      messages.map((msg) => {
-                        const senderRole = msg.senderRole;
-                        const isClientMsg = senderRole === 'student' || senderRole === 'user' || (selectedConversation.userId && (msg.senderId === selectedConversation.userId._id || msg.senderId?._id === selectedConversation.userId._id));
-                        return (
-                          <div key={msg._id || Math.random()} className={`flex flex-col group relative ${isClientMsg ? 'items-start' : 'items-end'}`}>
-                            <div className="flex items-center space-x-1.5 mb-1">
-                              <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                                {isClientMsg ? `${selectedConversation.userId?.firstName || 'Client'}` : 'Admin (You)'}
-                              </span>
-                              <span className={`text-[9px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <div className="relative group flex items-center space-x-2">
-                              <div className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm ${
-                                isClientMsg 
-                                  ? (darkMode ? 'bg-gray-800 text-gray-100 rounded-bl-sm border border-gray-700' : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200 shadow-sm')
-                                  : 'bg-orange-600 text-white rounded-br-sm'
-                              }`}>
-                                {msg.text}
-                              </div>
-                              <button 
-                                onClick={() => handleDeleteMessage(msg._id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-red-500 hover:text-red-700"
-                                title="Delete Message"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-
-                    {/* Telegram Typing Indicator Bubble */}
-                    {isTyping && (
-                      <div className="flex flex-col items-start">
-                        <div className="flex items-center space-x-1.5 mb-1">
-                          <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {selectedConversation.userId?.firstName || 'Client'} is typing...
-                          </span>
-                        </div>
-                        <div className={`rounded-2xl px-4 py-3 text-xs flex items-center space-x-1.5 ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200 shadow-sm'}`}>
-                          <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                          <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                          <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-
-                  {/* Send Message Input */}
-                  <form onSubmit={handleSendMessage} className={`p-3.5 border-t flex items-center space-x-3 ${darkMode ? 'border-gray-800 bg-gray-900' : 'border-gray-200 bg-white'}`}>
-                    <input 
-                      type="text"
-                      placeholder="Type your reply to client..."
-                      value={inputText}
-                      onChange={handleInputChange}
-                      className={`flex-1 rounded-xl px-4 py-2.5 text-xs border focus:outline-none focus:border-orange-500 ${
-                        darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
-                      }`}
-                    />
-                    <button
-                      type="submit"
-                      className="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center space-x-1.5 transition-colors flex-shrink-0 shadow-lg shadow-orange-600/20"
-                    >
-                      <span>Send</span>
-                      <Send size={13} />
-                    </button>
-                  </form>
-                </div>
-
-                {/* Rightmost Client Details Panel (Telegram Profile Style) */}
-                <div className={`w-72 hidden xl:flex flex-col p-6 overflow-y-auto ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-                  <div className="flex flex-col items-center text-center pb-6 border-b border-gray-200 dark:border-gray-800">
-                    <div className={`w-20 h-20 rounded-2xl border flex items-center justify-center font-bold text-2xl text-orange-500 overflow-hidden mb-3 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-orange-50 border-orange-200'}`}>
+                {/* Chat Header */}
+                <div className={`p-4 border-b flex items-center justify-between ${darkMode ? 'border-gray-800 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-9 h-9 rounded-xl border flex items-center justify-center font-bold text-orange-500 overflow-hidden flex-shrink-0 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-orange-50 border-orange-200'}`}>
                       {selectedConversation.userId?.profileImage ? (
                         <img src={selectedConversation.userId.profileImage} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <span>{selectedConversation.userId?.firstName?.[0] || 'U'}</span>
                       )}
                     </div>
-                    <h3 className="font-extrabold text-sm mb-0.5">
-                      {selectedConversation.userId?.firstName} {selectedConversation.userId?.lastName}
-                    </h3>
-                    <p className={`text-[10px] uppercase font-bold tracking-wider ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {selectedConversation.userId?.role || 'Student'}
-                    </p>
+                    <div>
+                      <h3 className="font-bold text-xs">
+                        {selectedConversation.userId?.firstName} {selectedConversation.userId?.lastName}
+                      </h3>
+                      <p className={`text-[10px] ${darkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>Online Support Chat</p>
+                    </div>
                   </div>
 
-                  <div className="py-6 space-y-4 text-xs">
-                    <div>
-                      <span className={`block text-[10px] uppercase font-bold tracking-wider mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Email Address</span>
-                      <div className="flex items-center space-x-2 font-medium">
-                        <Mail size={14} className="text-orange-500" />
-                        <span className="truncate">{selectedConversation.userId?.email}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <span className={`block text-[10px] uppercase font-bold tracking-wider mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Phone Number</span>
-                      <div className="flex items-center space-x-2 font-medium">
-                        <Phone size={14} className="text-orange-500" />
-                        <span>{selectedConversation.userId?.phone || 'N/A'}</span>
-                      </div>
-                    </div>
-                    <div>
-                      <span className={`block text-[10px] uppercase font-bold tracking-wider mb-1 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Conversation ID</span>
-                      <span className="font-mono text-[10px] break-all opacity-75">{selectedConversation._id || selectedConversation.id}</span>
-                    </div>
-                  </div>
+                  <select
+                    value={selectedConversation.status || 'active'}
+                    onChange={(e) => handleStatusChange(e.target.value)}
+                    className={`rounded-xl px-2.5 py-1 text-[11px] font-semibold border focus:outline-none ${
+                      darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
+                    }`}
+                  >
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="closed">Closed</option>
+                  </select>
                 </div>
+
+                {/* Messages Bubble List (Telegram Style: Client Left, Admin Right) */}
+                <div className={`flex-1 overflow-y-auto p-6 space-y-4 ${darkMode ? 'bg-gray-950/40' : 'bg-gray-50/50'}`}>
+                  {messagesLoading ? (
+                    <p className={`text-xs text-center py-12 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading messages...</p>
+                  ) : messages.length === 0 ? (
+                    <p className={`text-xs text-center py-12 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>No messages exchanged yet.</p>
+                  ) : (
+                    messages.map((msg) => {
+                      const senderRole = msg.senderRole;
+                      const isClientMsg = senderRole === 'student' || senderRole === 'user' || (selectedConversation.userId && (msg.senderId === selectedConversation.userId._id || msg.senderId?._id === selectedConversation.userId._id));
+                      return (
+                        <div key={msg._id || Math.random()} className={`flex flex-col group relative ${isClientMsg ? 'items-start' : 'items-end'}`}>
+                          <div className="flex items-center space-x-1.5 mb-1">
+                            <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              {isClientMsg ? `${selectedConversation.userId?.firstName || 'Client'}` : 'Admin (You)'}
+                            </span>
+                            <span className={`text-[9px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div className="relative group flex items-center space-x-2">
+                            <div className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm ${
+                              isClientMsg 
+                                ? (darkMode ? 'bg-gray-800 text-gray-100 rounded-bl-sm border border-gray-700' : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200 shadow-sm')
+                                : 'bg-orange-600 text-white rounded-br-sm'
+                            }`}>
+                              {msg.text}
+                            </div>
+                            <button 
+                              onClick={() => handleDeleteMessage(msg._id)}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-red-500 hover:text-red-700"
+                              title="Delete Message"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+
+                  {/* Telegram Typing Indicator Bubble */}
+                  {isTyping && (
+                    <div className="flex flex-col items-start">
+                      <div className="flex items-center space-x-1.5 mb-1">
+                        <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {selectedConversation.userId?.firstName || 'Client'} is typing...
+                        </span>
+                      </div>
+                      <div className={`rounded-2xl px-4 py-3 text-xs flex items-center space-x-1.5 ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200 shadow-sm'}`}>
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+
+                {/* Send Message Input */}
+                <form onSubmit={handleSendMessage} className={`p-3.5 border-t flex items-center space-x-3 ${darkMode ? 'border-gray-800 bg-gray-900' : 'border-gray-200 bg-white'}`}>
+                  <input 
+                    type="text"
+                    placeholder="Type your reply to client..."
+                    value={inputText}
+                    onChange={handleInputChange}
+                    className={`flex-1 rounded-xl px-4 py-2.5 text-xs border focus:outline-none focus:border-orange-500 ${
+                      darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
+                    }`}
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs flex items-center space-x-1.5 transition-colors flex-shrink-0 shadow-lg shadow-orange-600/20"
+                  >
+                    <span>Send</span>
+                    <Send size={13} />
+                  </button>
+                </form>
               </>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                 <MessageSquare size={48} className={`mb-3 ${darkMode ? 'text-gray-700' : 'text-gray-300'}`} />
                 <h3 className="font-bold text-sm mb-1">Select a client chat</h3>
                 <p className={`text-xs max-w-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  Choose a client conversation from the left sidebar to open the Telegram-style chat and review their profile on the right.
+                  Choose a client conversation from the left sidebar to open the Telegram-style chat.
                 </p>
               </div>
             )}
