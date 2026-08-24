@@ -89,7 +89,7 @@ export default function ManageLiveChat() {
     };
   }, []);
 
-  // Fetch Conversations on load or filter change
+  // Fetch Conversations once on mount or status filter change (prevents infinite loop vibration)
   useEffect(() => {
     fetchConversations();
   }, [statusFilter]);
@@ -108,17 +108,18 @@ export default function ManageLiveChat() {
     }
   };
 
-  // Fetch messages when conversation is selected
+  // Fetch messages only when selectedConversation ID changes
+  const selectedConvId = selectedConversation?._id || selectedConversation?.id;
   useEffect(() => {
-    if (selectedConversation) {
-      fetchMessages(selectedConversation._id || selectedConversation.id);
+    if (selectedConvId) {
+      fetchMessages(selectedConvId);
       
       // Join conversation room via socket
       if (socketRef.current) {
-        socketRef.current.emit('join_conversation', { conversationId: selectedConversation._id || selectedConversation.id });
+        socketRef.current.emit('join_conversation', { conversationId: selectedConvId });
       }
     }
-  }, [selectedConversation]);
+  }, [selectedConvId]);
 
   const fetchMessages = async (convId) => {
     try {
@@ -408,4 +409,3 @@ export default function ManageLiveChat() {
     </div>
   );
 }
-
