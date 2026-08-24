@@ -8,9 +8,12 @@ import {
   updateConversationStatusAdmin,
   markConversationReadAdmin 
 } from '../services/adminApi';
-import { MessageSquare, Send, Search, Phone, Mail, CheckCircle2, UserCheck, Shield } from 'lucide-react';
+import { MessageSquare, Send, Search, Phone, Mail, Trash2 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { io } from 'socket.io-client';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:5000/api';
 
 export default function ManageLiveChat() {
   const { darkMode } = useTheme();
@@ -23,59 +26,87 @@ export default function ManageLiveChat() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
   
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
+  const typingTimeoutRef = useRef(null);
+
+  // Get Auth Token
+  const getToken = () => {
+    try {
+      const u = localStorage.getItem('userInfo');
+      if (u && u !== 'undefined') {
+        const parsed = JSON.parse(u);
+        return parsed?.token;
+      }
+    } catch {}
+    return null;
+  };
 
   // Initialize Admin Socket Connection
   useEffect(() => {
     try {
-      const userInfoStr = localStorage.getItem('userInfo');
-      if (userInfoStr) {
-        const userInfo = JSON.parse(userInfoStr);
-        if (userInfo && userInfo.token) {
-          const socket = io('http://localhost:5000', {
-            auth: { token: userInfo.token },
-            transports: ['websocket', 'polling']
+      const token = getToken();
+      if (token) {
+        const socket = io('http://localhost:5000', {
+          auth: { token },
+          transports: ['websocket', 'polling']
+        });
+
+        socketRef.current = socket;
+
+        socket.on('connect', () => {
+          console.log('Admin socket connected:', socket.id);
+        });
+
+        socket.on('conversation_updated', (updatedConv) => {
+          setConversations(prev => {
+            const index = prev.findIndex(c => c._id === updatedConv._id || c.id === updatedConv._id);
+            if (index >= 0) {
+              const updated = [...prev];
+              updated[index] = { ...updated[index], ...updatedConv };
+              return updated.sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
+            } else {
+              return [updatedConv, ...prev];
+            }
           });
 
-          socketRef.current = socket;
-
-          socket.on('connect', () => {
-            console.log('Admin socket connected:', socket.id);
+          setSelectedConversation(current => {
+            if (current && (current._id === updatedConv._id || current.id === updatedConv._id)) {
+              return { ...current, ...updatedConv };
+            }
+            return current;
           });
+        });
 
-          socket.on('conversation_updated', (updatedConv) => {
-            setConversations(prev => {
-              const index = prev.findIndex(c => c._id === updatedConv._id);
-              if (index >= 0) {
-                const updated = [...prev];
-                updated[index] = { ...updated[index], ...updatedConv };
-                return updated.sort((a, b) => new Date(b.lastMessageAt) - new Date(a.lastMessageAt));
-              } else {
-                return [updatedConv, ...prev];
+        socket.on('new_message', (message) => {
+          setMessages(prev => {
+            const convId = selectedConversation?._id || selectedConversation?.id;
+            if (convId && message.conversationId === convId) {
+              if (!prev.some(m => m._id === message._id)) {
+                return [...prev, message];
               }
-            });
-
-            setSelectedConversation(current => {
-              if (current && current._id === updatedConv._id) {
-                return { ...current, ...updatedConv };
-              }
-              return current;
-            });
+            }
+            return prev;
           });
+        });
 
-          socket.on('new_message', (message) => {
-            setMessages(prev => {
-              if (selectedConversation && message.conversationId === (selectedConversation._id || selectedConversation.id)) {
-                if (!prev.some(m => m._id === message._id)) {
-                  return [...prev, message];
-                }
-              }
-              return prev;
-            });
-          });
-        }
+        socket.on('message_deleted', ({ messageId }) => {
+          setMessages(prev => prev.map(m => m._id === messageId ? { ...m, text: 'This message was deleted', deletedAt: new Date() } : m));
+        });
+
+        socket.on('typing_start', ({ role }) => {
+          if (role === 'student' || role === 'user') {
+            setIsTyping(true);
+          }
+        });
+
+        socket.on('typing_stop', ({ role }) => {
+          if (role === 'student' || role === 'user') {
+            setIsTyping(false);
+          }
+        });
       }
     } catch (e) {
       console.error('Socket initialization error:', e);
@@ -86,9 +117,9 @@ export default function ManageLiveChat() {
         socketRef.current.disconnect();
       }
     };
-  }, []);
+  }, [selectedConversation]);
 
-  // Fetch Conversations once on mount or status filter change
+  // Fetch Conversations on mount or filter change
   useEffect(() => {
     fetchConversations();
   }, [statusFilter]);
@@ -135,7 +166,20 @@ export default function ManageLiveChat() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, isTyping]);
+
+  const handleInputChange = (e) => {
+    setInputText(e.target.value);
+    const convId = selectedConversation?._id || selectedConversation?.id;
+    if (!convId || !socketRef.current) return;
+
+    socketRef.current.emit('typing_start', { conversationId: convId });
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      socketRef.current.emit('typing_stop', { conversationId: convId });
+    }, 2000);
+  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -144,6 +188,10 @@ export default function ManageLiveChat() {
 
     const textToSend = inputText.trim();
     setInputText('');
+
+    if (socketRef.current && socketRef.current.connected) {
+      socketRef.current.emit('typing_stop', { conversationId: convId });
+    }
 
     try {
       if (socketRef.current && socketRef.current.connected) {
@@ -161,6 +209,26 @@ export default function ManageLiveChat() {
       console.error('Failed to send message:', err);
       setErrorMsg('Failed to send message.');
       setTimeout(() => setErrorMsg(''), 4000);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    if (!window.confirm('Delete this message for everyone?')) return;
+    const convId = selectedConversation?._id || selectedConversation?.id;
+    try {
+      const token = getToken();
+      await axios.patch(`${API_BASE_URL}/conversations/messages/${messageId}/delete`, { deleteType: 'everyone' }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setMessages(prev => prev.map(m => m._id === messageId ? { ...m, text: 'This message was deleted', deletedAt: new Date() } : m));
+
+      if (socketRef.current) {
+        socketRef.current.emit('delete_message', { messageId, conversationId: convId, deleteType: 'everyone' });
+      }
+    } catch (err) {
+      console.error('Delete message error:', err);
+      setErrorMsg('Failed to delete message.');
     }
   };
 
@@ -340,7 +408,7 @@ export default function ManageLiveChat() {
                         const senderRole = msg.senderRole;
                         const isClientMsg = senderRole === 'student' || senderRole === 'user' || (selectedConversation.userId && (msg.senderId === selectedConversation.userId._id || msg.senderId?._id === selectedConversation.userId._id));
                         return (
-                          <div key={msg._id || Math.random()} className={`flex flex-col ${isClientMsg ? 'items-start' : 'items-end'}`}>
+                          <div key={msg._id || Math.random()} className={`flex flex-col group relative ${isClientMsg ? 'items-start' : 'items-end'}`}>
                             <div className="flex items-center space-x-1.5 mb-1">
                               <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                                 {isClientMsg ? `${selectedConversation.userId?.firstName || 'Client'}` : 'Admin (You)'}
@@ -349,16 +417,41 @@ export default function ManageLiveChat() {
                                 {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
-                            <div className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm ${
-                              isClientMsg 
-                                ? (darkMode ? 'bg-gray-800 text-gray-100 rounded-bl-sm border border-gray-700' : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200 shadow-sm')
-                                : 'bg-orange-600 text-white rounded-br-sm'
-                            }`}>
-                              {msg.text}
+                            <div className="relative group flex items-center space-x-2">
+                              <div className={`max-w-md rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-sm ${
+                                isClientMsg 
+                                  ? (darkMode ? 'bg-gray-800 text-gray-100 rounded-bl-sm border border-gray-700' : 'bg-white text-gray-900 rounded-bl-sm border border-gray-200 shadow-sm')
+                                  : 'bg-orange-600 text-white rounded-br-sm'
+                              }`}>
+                                {msg.text}
+                              </div>
+                              <button 
+                                onClick={() => handleDeleteMessage(msg._id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-red-500 hover:text-red-700"
+                                title="Delete Message"
+                              >
+                                <Trash2 size={13} />
+                              </button>
                             </div>
                           </div>
                         );
                       })
+                    )}
+
+                    {/* Telegram Typing Indicator Bubble */}
+                    {isTyping && (
+                      <div className="flex flex-col items-start">
+                        <div className="flex items-center space-x-1.5 mb-1">
+                          <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {selectedConversation.userId?.firstName || 'Client'} is typing...
+                          </span>
+                        </div>
+                        <div className={`rounded-2xl px-4 py-3 text-xs flex items-center space-x-1.5 ${darkMode ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200 shadow-sm'}`}>
+                          <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                          <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                        </div>
+                      </div>
                     )}
                     <div ref={messagesEndRef} />
                   </div>
@@ -369,7 +462,7 @@ export default function ManageLiveChat() {
                       type="text"
                       placeholder="Type your reply to client..."
                       value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
+                      onChange={handleInputChange}
                       className={`flex-1 rounded-xl px-4 py-2.5 text-xs border focus:outline-none focus:border-orange-500 ${
                         darkMode ? 'bg-gray-800 border-gray-700 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'
                       }`}
