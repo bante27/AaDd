@@ -20,43 +20,35 @@ function AppRoutes() {
   const { user } = useAuth();
 
   if (!user) {
-    return (
-      <>
-        <AdminLogin />
-        <FloatingChatWidget />
-      </>
-    );
+    return <AdminLogin />;
   }
 
   return (
-    <>
-      <Routes>
-        <Route path="/" element={<AdminDashboard />} />
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/users" element={<ManageUsers />} />
-        <Route path="/admin/users" element={<ManageUsers />} />
-        <Route path="/courses" element={<ManageCourses />} />
-        <Route path="/admin/courses" element={<ManageCourses />} />
-        <Route path="/assets" element={<ManageAssets />} />
-        <Route path="/admin/assets" element={<ManageAssets />} />
-        <Route path="/portfolios" element={<ManagePortfolios />} />
-        <Route path="/admin/portfolios" element={<ManagePortfolios />} />
-        <Route path="/inquiries" element={<ViewInquiries />} />
-        <Route path="/admin/inquiries" element={<ViewInquiries />} />
-        <Route path="/editing" element={<ManageEditing />} />
-        <Route path="/admin/editing" element={<ManageEditing />} />
-        <Route path="/chat" element={<ManageLiveChat />} />
-        <Route path="/admin/chat" element={<ManageLiveChat />} />
-        <Route path="/contact-newsletter" element={<ManageContactNewsletter />} />
-        <Route path="/admin/contact-newsletter" element={<ManageContactNewsletter />} />
-        <Route path="/home-video" element={<ManageHomeVideo />} />
-        <Route path="/admin/home-video" element={<ManageHomeVideo />} />
-        <Route path="/payment-simulate" element={<SimulatePayment />} />
-        <Route path="/admin/payment-simulate" element={<SimulatePayment />} />
-        <Route path="*" element={<AdminDashboard />} />
-      </Routes>
-      <FloatingChatWidget />
-    </>
+    <Routes>
+      <Route path="/" element={<AdminDashboard />} />
+      <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/users" element={<ManageUsers />} />
+      <Route path="/admin/users" element={<ManageUsers />} />
+      <Route path="/courses" element={<ManageCourses />} />
+      <Route path="/admin/courses" element={<ManageCourses />} />
+      <Route path="/assets" element={<ManageAssets />} />
+      <Route path="/admin/assets" element={<ManageAssets />} />
+      <Route path="/portfolios" element={<ManagePortfolios />} />
+      <Route path="/admin/portfolios" element={<ManagePortfolios />} />
+      <Route path="/inquiries" element={<ViewInquiries />} />
+      <Route path="/admin/inquiries" element={<ViewInquiries />} />
+      <Route path="/editing" element={<ManageEditing />} />
+      <Route path="/admin/editing" element={<ManageEditing />} />
+      <Route path="/chat" element={<ManageLiveChat />} />
+      <Route path="/admin/chat" element={<ManageLiveChat />} />
+      <Route path="/contact-newsletter" element={<ManageContactNewsletter />} />
+      <Route path="/admin/contact-newsletter" element={<ManageContactNewsletter />} />
+      <Route path="/home-video" element={<ManageHomeVideo />} />
+      <Route path="/admin/home-video" element={<ManageHomeVideo />} />
+      <Route path="/payment-simulate" element={<SimulatePayment />} />
+      <Route path="/admin/payment-simulate" element={<SimulatePayment />} />
+      <Route path="*" element={<AdminDashboard />} />
+    </Routes>
   );
 }
 
