@@ -354,7 +354,7 @@ export default function ManageLiveChat() {
                         <div key={msg._id || Math.random()} className={`flex flex-col ${isAdminMsg ? 'items-end' : 'items-start'}`}>
                           <div className="flex items-center space-x-1 mb-1">
                             <span className={`text-[10px] font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                              {isAdminMsg ? 'Admin' : `${selectedConversation.userId?.firstName || 'User'}`}
+                              {isAdminMsg ? 'Admin' : `${selectedConversation.userId?.firstName || 'Client'}`}
                             </span>
                             <span className={`text-[10px] ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
                               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
