@@ -9,6 +9,7 @@ import ManageAssets from './pages/ManageAssets';
 import ManagePortfolios from './pages/ManagePortfolios';
 import ViewInquiries from './pages/ViewInquiries';
 import ManageEditing from './pages/ManageEditing';
+import ManageLiveChat from './pages/ManageLiveChat';
 import ManageContactNewsletter from './pages/ManageContactNewsletter';
 import ManageHomeVideo from './pages/ManageHomeVideo';
 import SimulatePayment from './pages/SimulatePayment';
@@ -59,3 +60,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+
