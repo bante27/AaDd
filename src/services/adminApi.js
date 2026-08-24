@@ -106,3 +106,11 @@ export const deleteUserAdmin = (id) => ADMIN_API.delete(`/auth/users/${id}`);
 export const toggleBlockUserAdmin = (id) => ADMIN_API.put(`/auth/users/${id}/block`);
 export const updateUserRoleAdmin = (id, role) => ADMIN_API.put(`/auth/users/${id}/role`, { role });
 
+// 12. Live Support Chat (/api/conversations)
+export const getConversationsAdmin = (status) => ADMIN_API.get('/conversations', { params: { status } });
+export const getConversationMessagesAdmin = (conversationId) => ADMIN_API.get(`/conversations/${conversationId}/messages`);
+export const sendConversationMessageAdmin = (conversationId, text) => ADMIN_API.post(`/conversations/${conversationId}/messages`, { text });
+export const updateConversationStatusAdmin = (conversationId, status) => ADMIN_API.patch(`/conversations/${conversationId}/status`, { status });
+export const markConversationReadAdmin = (conversationId) => ADMIN_API.patch(`/conversations/${conversationId}/read`);
+
+
