@@ -38,6 +38,8 @@ function AppRoutes() {
       <Route path="/admin/inquiries" element={<ViewInquiries />} />
       <Route path="/editing" element={<ManageEditing />} />
       <Route path="/admin/editing" element={<ManageEditing />} />
+      <Route path="/chat" element={<ManageLiveChat />} />
+      <Route path="/admin/chat" element={<ManageLiveChat />} />
       <Route path="/contact-newsletter" element={<ManageContactNewsletter />} />
       <Route path="/admin/contact-newsletter" element={<ManageContactNewsletter />} />
       <Route path="/home-video" element={<ManageHomeVideo />} />
@@ -60,4 +62,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-
