@@ -111,11 +111,11 @@ export default function ManageLiveChat() {
   // Fetch messages when conversation is selected
   useEffect(() => {
     if (selectedConversation) {
-      fetchMessages(selectedConversation._id);
+      fetchMessages(selectedConversation._id || selectedConversation.id);
       
       // Join conversation room via socket
       if (socketRef.current) {
-        socketRef.current.emit('join_conversation', { conversationId: selectedConversation._id });
+        socketRef.current.emit('join_conversation', { conversationId: selectedConversation._id || selectedConversation.id });
       }
     }
   }, [selectedConversation]);
@@ -130,7 +130,7 @@ export default function ManageLiveChat() {
       await markConversationReadAdmin(convId);
       
       // Update local unread count
-      setConversations(prev => prev.map(c => c._id === convId ? { ...c, unreadCount: 0 } : c));
+      setConversations(prev => prev.map(c => (c._id === convId || c.id === convId) ? { ...c, unreadCount: 0 } : c));
     } catch (err) {
       console.error('Error fetching messages:', err);
     } finally {
@@ -144,7 +144,8 @@ export default function ManageLiveChat() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputText.trim() || !selectedConversation) return;
+    const convId = selectedConversation?._id || selectedConversation?.id;
+    if (!inputText.trim() || !convId) return;
 
     const textToSend = inputText.trim();
     setInputText('');
@@ -153,11 +154,11 @@ export default function ManageLiveChat() {
       // Send via socket if connected, or fallback/alongside API
       if (socketRef.current && socketRef.current.connected) {
         socketRef.current.emit('send_message', {
-          conversationId: selectedConversation._id,
+          conversationId: convId,
           text: textToSend
         });
       } else {
-        const res = await sendConversationMessageAdmin(selectedConversation._id, textToSend);
+        const res = await sendConversationMessageAdmin(convId, textToSend);
         if (res.data?.message) {
           setMessages(prev => [...prev, res.data.message]);
         }
@@ -170,12 +171,13 @@ export default function ManageLiveChat() {
   };
 
   const handleStatusChange = async (newStatus) => {
-    if (!selectedConversation) return;
+    const convId = selectedConversation?._id || selectedConversation?.id;
+    if (!convId) return;
     try {
-      const res = await updateConversationStatusAdmin(selectedConversation._id, newStatus);
+      const res = await updateConversationStatusAdmin(convId, newStatus);
       if (res.data?.conversation) {
         setSelectedConversation(res.data.conversation);
-        setConversations(prev => prev.map(c => c._id === res.data.conversation._id ? res.data.conversation : c));
+        setConversations(prev => prev.map(c => (c._id === res.data.conversation._id || c.id === res.data.conversation._id) ? res.data.conversation : c));
       }
     } catch (err) {
       console.error('Failed to update status:', err);
@@ -406,3 +408,4 @@ export default function ManageLiveChat() {
     </div>
   );
 }
+
